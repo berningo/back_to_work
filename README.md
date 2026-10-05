@@ -21,7 +21,6 @@ cargo run --release
 - Right-click a task for the same actions.
 
 Tasks are stored in SQLite and loaded when the application starts. The database is
-`%APPDATA%\back_to_work\tasks.sqlite3` on Windows (or the platform data directory on
-other systems). The `tasks` table stores each task with a parent ID and sibling order;
+`%APPDATA%\back_to_work\tasks.sqlite3` on Windows,`r`n`~/Library/Application Support/back_to_work/tasks.sqlite3` on macOS, and`r`n`$XDG_DATA_HOME/back_to_work/tasks.sqlite3` on Linux (falling back to`r`n`~/.local/share/back_to_work/tasks.sqlite3`). The `tasks` table stores each task with a parent ID and sibling order;
 `planner_state` stores the selected task and next ID. Each task change is committed
 in one transaction.

@@ -8,12 +8,35 @@ type StoredTask = (i64, i64, String, bool);
 type LoadedState = (Vec<Task>, Option<u64>, u64);
 
 pub(crate) fn database_path() -> PathBuf {
-    let base = std::env::var_os("APPDATA")
-        .or_else(|| std::env::var_os("XDG_DATA_HOME"))
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/share")))
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let base = platform_data_dir().unwrap_or_else(|| {
+        std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+    });
     base.join("back_to_work").join("tasks.sqlite3")
+}
+
+#[cfg(target_os = "windows")]
+fn platform_data_dir() -> Option<PathBuf> {
+    std::env::var_os("APPDATA").map(PathBuf::from)
+}
+
+#[cfg(target_os = "macos")]
+fn platform_data_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .map(|home| PathBuf::from(home).join("Library/Application Support"))
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn platform_data_dir() -> Option<PathBuf> {
+    std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/share"))
+        })
+}
+
+#[cfg(not(any(unix, target_os = "windows")))]
+fn platform_data_dir() -> Option<PathBuf> {
+    None
 }
 
 pub(crate) fn open(path: &std::path::Path) -> rusqlite::Result<Connection> {
