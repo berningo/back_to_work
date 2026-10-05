@@ -1,6 +1,6 @@
 # Aufgabenplaner
 
-Native German-language hierarchical task planner rewritten in Rust. The UI is drawn by egui using its wgpu renderer.
+Native German-language hierarchical task planner written in Rust. The UI is drawn by egui using its wgpu renderer.
 
 ## Build and run
 
