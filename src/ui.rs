@@ -9,7 +9,7 @@ impl Planner {
         let leaf = task.children.is_empty();
         let title = task.title.clone();
         let children = task.children.clone();
-        let response = ui
+        ui
             .horizontal(|ui| {
                 ui.add_space(depth as f32 * 22.0);
                 let (status_rect, status_response) =
@@ -128,6 +128,9 @@ impl Planner {
                         );
                     }
                 }
+                if label.double_clicked() {
+                    actions.push(Action::Rename(id));
+                }
                 if label.clicked() {
                     self.selected = Some(id);
                     self.persist();
@@ -163,11 +166,7 @@ impl Planner {
                         ui.close();
                     }
                 });
-            })
-            .response;
-        if response.double_clicked() {
-            actions.push(Action::Rename(id));
-        }
+            });
         for child in &children {
             self.row(ui, child, depth + 1, actions, drop_target);
         }
@@ -193,7 +192,7 @@ impl eframe::App for Planner {
         let mut drop_target = None;
         if self.dialog.is_none() {
             root_ui.ctx().input(|input| {
-                if input.modifiers.ctrl && input.key_pressed(egui::Key::N) {
+                if input.modifiers.command && input.key_pressed(egui::Key::N) {
                     actions.push(if input.modifiers.shift {
                         selected.map(Action::AddChild).unwrap_or(Action::AddRoot)
                     } else {
@@ -232,14 +231,14 @@ impl eframe::App for Planner {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         ui.label(
-                            egui::RichText::new("Oliver's")
+                           egui::RichText::new("Oliver's")
                                 .size(11.0)
                                 .strong()
                                 .color(egui::Color32::from_rgb(79, 112, 157)),
                         );
                         ui.add_space(4.0);
                         ui.heading(
-                            egui::RichText::new("Aufgabenplaner")
+                           egui::RichText::new("Aufgabenplaner")
                                 .size(27.0)
                                 .strong()
                                 .color(egui::Color32::from_rgb(29, 43, 63)),
@@ -272,7 +271,7 @@ impl eframe::App for Planner {
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
                             ui.label(
-                                egui::RichText::new("MEINE AUFGABEN")
+                               egui::RichText::new("MEINE AUFGABEN")
                                     .size(12.0)
                                     .strong()
                                     .color(egui::Color32::from_rgb(63, 80, 105)),
@@ -281,7 +280,7 @@ impl eframe::App for Planner {
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
                                     ui.label(
-                                        egui::RichText::new(format!("{done} / {total} erledigt"))
+                                       egui::RichText::new(format!("{done} / {total} erledigt"))
                                             .color(egui::Color32::from_rgb(101, 117, 140)),
                                     );
                                 },
@@ -309,13 +308,13 @@ impl eframe::App for Planner {
                                     ui.vertical_centered(|ui| {
                                         ui.add_space(24.0);
                                         ui.label(
-                                            egui::RichText::new("Noch keine Aufgaben")
+                                           egui::RichText::new("Noch keine Aufgaben")
                                                 .size(17.0)
                                                 .strong()
                                                 .color(egui::Color32::from_rgb(42, 57, 78)),
                                         );
                                         ui.label(
-                                            egui::RichText::new(
+                                           egui::RichText::new(
                                                 "Füge eine Aufgabe hinzu, um loszulegen.",
                                             )
                                             .color(egui::Color32::from_rgb(106, 122, 145)),
@@ -331,9 +330,11 @@ impl eframe::App for Planner {
                     });
                 ui.add_space(14.0);
                 ui.label(
-                    egui::RichText::new(
-                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Ctrl+N  Neue Aufgabe     ·     Ctrl+Umschalt+N  Unteraufgabe     ·     Entf  Löschen",
-                    )
+                    egui::RichText::new(if cfg!(target_os = "macos") {
+                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Cmd+N  Neue Aufgabe     ·     Cmd+Umschalt+N  Unteraufgabe     ·     Entf  Löschen"
+                    } else {
+                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Ctrl+N  Neue Aufgabe     ·     Ctrl+Umschalt+N  Unteraufgabe     ·     Entf  Löschen"
+                    })
                     .size(11.0)
                     .color(egui::Color32::from_rgb(111, 126, 147)),
                 );
@@ -403,3 +404,4 @@ impl eframe::App for Planner {
         }
     }
 }
+
