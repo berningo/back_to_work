@@ -75,6 +75,8 @@ pub(crate) struct Planner {
     pub(crate) dragging: Option<u64>,
     pub(crate) search_open: bool,
     pub(crate) search_query: String,
+    pub(crate) search_results_focused: bool,
+    pub(crate) search_selected_index: usize,
     pub(crate) reveal_task: Option<u64>,
 }
 
@@ -118,6 +120,8 @@ impl Planner {
                 dragging: None,
                 search_open: false,
                 search_query: String::new(),
+                search_results_focused: false,
+                search_selected_index: 0,
                 reveal_task: None,
             },
             Ok(None) => {
@@ -126,6 +130,8 @@ impl Planner {
                     dragging: None,
                     search_open: false,
                     search_query: String::new(),
+                    search_results_focused: false,
+                    search_selected_index: 0,
                     reveal_task: None,
                     ..Self::default_without_db()
                 };
@@ -153,6 +159,8 @@ impl Planner {
             dragging: None,
             search_open: false,
             search_query: String::new(),
+            search_results_focused: false,
+            search_selected_index: 0,
             reveal_task: None,
         }
     }

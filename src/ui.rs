@@ -24,6 +24,8 @@ impl Planner {
         ctx.input(|input| {
             if input.modifiers.command && input.key_pressed(egui::Key::F) {
                 self.search_open = true;
+                self.search_results_focused = false;
+                self.search_selected_index = 0;
             }
             if input.modifiers.command && input.key_pressed(egui::Key::N) {
                 actions.push(if input.modifiers.shift {
@@ -163,6 +165,8 @@ impl Planner {
                 }
                 if ui.button("Suchen").clicked() {
                     self.search_open = true;
+                    self.search_results_focused = false;
+                    self.search_selected_index = 0;
                 }
             });
         });
@@ -266,32 +270,61 @@ impl Planner {
                         .desired_width(f32::INFINITY)
                         .hint_text("Suchbegriff eingeben"),
                 );
-                input.request_focus();
+                if !self.search_results_focused {
+                    input.request_focus();
+                }
                 ui.add_space(8.0);
                 let query = self.search_query.trim().to_lowercase();
+                let mut matches = Vec::new();
+                if !query.is_empty() {
+                    collect_matches(&self.roots, &query, &mut matches);
+                }
+                let (tab_pressed, up_pressed, down_pressed, enter_pressed) = ui.input(|i| (
+                    i.key_pressed(egui::Key::Tab), i.key_pressed(egui::Key::ArrowUp),
+                    i.key_pressed(egui::Key::ArrowDown), i.key_pressed(egui::Key::Enter),
+                ));
+                if tab_pressed && !matches.is_empty() { self.search_results_focused = true; }
+                if self.search_results_focused && !matches.is_empty() {
+                    if down_pressed { self.search_selected_index = (self.search_selected_index + 1).min(matches.len() - 1); }
+                    if up_pressed { self.search_selected_index = self.search_selected_index.saturating_sub(1); }
+                }
+                self.search_selected_index = self.search_selected_index.min(matches.len().saturating_sub(1));
+                let mut activate = if enter_pressed && ((!self.search_results_focused && matches.len() == 1) || (self.search_results_focused && !matches.is_empty())) {
+                    matches.get(self.search_selected_index).map(|item| item.0)
+                } else { None };
                 if query.is_empty() {
                     ui.label("Alle Aufgaben werden während der Eingabe durchsucht.");
                 } else {
-                    let mut matches = Vec::new();
-                    collect_matches(&self.roots, &query, &mut matches);
                     if matches.is_empty() {
                         ui.label("Keine passenden Aufgaben gefunden.");
                     } else {
                         egui::ScrollArea::vertical()
                             .max_height(280.0)
                             .show(ui, |ui| {
-                                for (id, title) in matches {
-                                    if ui.selectable_label(false, title).clicked() {
-                                        self.selected = Some(id);
-                                        self.reveal_task = Some(id);
-                                        self.search_open = false;
-                                        self.search_query.clear();
-                                        self.persist();
-                                        close = true;
+                                for (index, (id, title)) in matches.iter().enumerate() {
+                                    let response = ui.selectable_label(
+                                        self.search_results_focused && index == self.search_selected_index,
+                                        title,
+                                    );
+                                    if self.search_results_focused && index == self.search_selected_index {
+                                        response.request_focus();
+                                    }
+                                    if response.clicked() {
+                                        activate = Some(*id);
                                     }
                                 }
                             });
                     }
+                }
+                if let Some(id) = activate {
+                    self.selected = Some(id);
+                    self.reveal_task = Some(id);
+                    self.search_open = false;
+                    self.search_query.clear();
+                    self.search_results_focused = false;
+                    self.search_selected_index = 0;
+                    self.persist();
+                    close = true;
                 }
                 ui.add_space(8.0);
                 if ui.button("Schließen").clicked() {
@@ -300,6 +333,7 @@ impl Planner {
             });
         if close {
             self.search_open = false;
+            self.search_results_focused = false;
         }
     }
 
