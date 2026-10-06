@@ -245,11 +245,11 @@ impl eframe::App for Planner {
                         );
                     });
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("＋ Aufgabe").clicked() {
+                        if ui.button("+ Aufgabe").clicked() {
                             actions.push(Action::AddRoot);
                         }
                         if ui
-                            .add_enabled(selected.is_some(), egui::Button::new("＋ Unteraufgabe"))
+                            .add_enabled(selected.is_some(), egui::Button::new("+ Unteraufgabe"))
                             .clicked()
                             && let Some(id) = selected
                         {
