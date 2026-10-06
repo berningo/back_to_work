@@ -73,6 +73,9 @@ pub(crate) struct Planner {
     pub(crate) dialog: Option<Dialog>,
     pub(crate) db: Connection,
     pub(crate) dragging: Option<u64>,
+    pub(crate) search_open: bool,
+    pub(crate) search_query: String,
+    pub(crate) reveal_task: Option<u64>,
 }
 
 impl Planner {
@@ -113,11 +116,17 @@ impl Planner {
                 dialog: None,
                 db,
                 dragging: None,
+                search_open: false,
+                search_query: String::new(),
+                reveal_task: None,
             },
             Ok(None) => {
                 let planner = Self {
                     db,
                     dragging: None,
+                    search_open: false,
+                    search_query: String::new(),
+                    reveal_task: None,
                     ..Self::default_without_db()
                 };
                 planner.persist();
@@ -142,6 +151,9 @@ impl Planner {
             dialog: None,
             db: Connection::open_in_memory().expect("in-memory SQLite connection"),
             dragging: None,
+            search_open: false,
+            search_query: String::new(),
+            reveal_task: None,
         }
     }
 

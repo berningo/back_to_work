@@ -2,6 +2,15 @@ use eframe::egui;
 
 use crate::model::{Action, DropPosition, Planner, Task, TaskState, count_tasks};
 
+fn collect_matches(tasks: &[Task], query: &str, matches: &mut Vec<(u64, String)>) {
+    for task in tasks {
+        if task.title.to_lowercase().contains(query) {
+            matches.push((task.id, task.title.clone()));
+        }
+        collect_matches(&task.children, query, matches);
+    }
+}
+
 impl Planner {
     fn row(&mut self, ui: &mut egui::Ui, task: &Task, depth: usize, actions: &mut Vec<Action>, drop_target: &mut Option<(u64, DropPosition)>) {
         let id = task.id;
@@ -135,6 +144,10 @@ impl Planner {
                     self.selected = Some(id);
                     self.persist();
                 }
+                if self.reveal_task == Some(id) {
+                    label.scroll_to_me(Some(egui::Align::Center));
+                    self.reveal_task = None;
+                }
                 label.context_menu(|ui| {
                     if ui.button("Aufgabe hinzufügen").clicked() {
                         actions.push(Action::AddRoot);
@@ -192,6 +205,9 @@ impl eframe::App for Planner {
         let mut drop_target = None;
         if self.dialog.is_none() {
             root_ui.ctx().input(|input| {
+                if input.modifiers.command && input.key_pressed(egui::Key::F) {
+                    self.search_open = true;
+                }
                 if input.modifiers.command && input.key_pressed(egui::Key::N) {
                     actions.push(if input.modifiers.shift {
                         selected.map(Action::AddChild).unwrap_or(Action::AddRoot)
@@ -254,6 +270,9 @@ impl eframe::App for Planner {
                             && let Some(id) = selected
                         {
                             actions.push(Action::AddChild(id));
+                        }
+                        if ui.button("Suchen").clicked() {
+                            self.search_open = true;
                         }
                     });
                 });
@@ -331,9 +350,9 @@ impl eframe::App for Planner {
                 ui.add_space(14.0);
                 ui.label(
                     egui::RichText::new(if cfg!(target_os = "macos") {
-                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Cmd+N  Neue Aufgabe     ·     Cmd+Umschalt+N  Unteraufgabe     ·     Entf  Löschen"
+                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Cmd+N  Neue Aufgabe     ·     Cmd+Umschalt+N  Unteraufgabe     ·     Cmd+F  Suchen     ·     Entf  Löschen"
                     } else {
-                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Ctrl+N  Neue Aufgabe     ·     Ctrl+Umschalt+N  Unteraufgabe     ·     Entf  Löschen"
+                        "LEERTASTE  Erledigt     ·     Doppelklick / F2  Umbenennen     ·     Ctrl+N  Neue Aufgabe     ·     Ctrl+Umschalt+N  Unteraufgabe     ·     Ctrl+F  Suchen     ·     Entf  Löschen"
                     })
                     .size(11.0)
                     .color(egui::Color32::from_rgb(111, 126, 147)),
@@ -401,6 +420,54 @@ impl eframe::App for Planner {
         if let Some((action, title)) = submit {
             self.apply(action, title);
             self.dialog = None;
+        }
+
+        if self.search_open {
+            let mut close = false;
+            egui::Window::new("Aufgaben suchen")
+                .collapsible(false)
+                .resizable(true)
+                .default_width(420.0)
+                .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+                .show(root_ui.ctx(), |ui| {
+                    let input = ui.add(
+                        egui::TextEdit::singleline(&mut self.search_query)
+                            .desired_width(f32::INFINITY)
+                            .hint_text("Suchbegriff eingeben"),
+                    );
+                    input.request_focus();
+                    ui.add_space(8.0);
+                    let query = self.search_query.trim().to_lowercase();
+                    if query.is_empty() {
+                        ui.label("Alle Aufgaben werden während der Eingabe durchsucht.");
+                    } else {
+                        let mut matches = Vec::new();
+                        collect_matches(&self.roots, &query, &mut matches);
+                        if matches.is_empty() {
+                            ui.label("Keine passenden Aufgaben gefunden.");
+                        } else {
+                            egui::ScrollArea::vertical().max_height(280.0).show(ui, |ui| {
+                                for (id, title) in matches {
+                                    if ui.selectable_label(false, title).clicked() {
+                                        self.selected = Some(id);
+                                        self.reveal_task = Some(id);
+                                        self.search_open = false;
+                                        self.search_query.clear();
+                                        self.persist();
+                                        close = true;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    ui.add_space(8.0);
+                    if ui.button("Schließen").clicked() {
+                        close = true;
+                    }
+                });
+            if close {
+                self.search_open = false;
+            }
         }
     }
 }
