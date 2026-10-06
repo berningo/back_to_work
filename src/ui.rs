@@ -45,12 +45,13 @@ impl Planner {
                 actions.push(Action::Delete(id));
             }
             if input.key_pressed(egui::Key::Space)
+                && !self.search_open
                 && is_leaf
                 && let Some(id) = selected
             {
                 actions.push(Action::Toggle(id));
             }
-            if input.key_pressed(egui::Key::Escape) {
+            if input.key_pressed(egui::Key::Escape) && !self.search_open {
                 self.selected = None;
                 self.persist();
             }
@@ -219,13 +220,14 @@ impl Planner {
                 "Neue Aufgabe"
             })
             .collapsible(false)
-            .resizable(false)
+            .resizable(true)
+            .default_width(420.0)
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .show(ctx, |ui| {
                 ui.label("Aufgabentitel:");
                 let input = ui.add(
                     egui::TextEdit::singleline(&mut dialog.title)
-                        .desired_width(300.0)
+                        .desired_width(f32::INFINITY)
                         .hint_text("Titel eingeben"),
                 );
                 input.request_focus();
@@ -258,7 +260,7 @@ impl Planner {
         if !self.search_open {
             return;
         }
-        let mut close = false;
+        let mut close = ctx.input(|input| input.key_pressed(egui::Key::Escape));
         egui::Window::new("Aufgaben suchen")
             .collapsible(false)
             .resizable(true)
