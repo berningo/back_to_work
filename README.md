@@ -10,6 +10,12 @@ Install Rust with rustup, then run:
 cargo run --release
 ```
 
+For creating a **MacOS app bundle** it is recommended to install cargo-bundle via `cargo install cargo-bundle`.
+The app can then be created as follows:
+```shell
+cargo bundle --release
+```
+
 ## Controls
 
 - Select a task and use **＋ Unteraufgabe** to add a child task.
